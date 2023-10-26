@@ -1000,9 +1000,15 @@ pub fn send_payment(payment: SendPayment) -> Result<()> {
             let invoice = Invoice::from_str(&invoice)?;
             NODE.get().inner.pay_invoice(&invoice, amount)?;
         }
-        SendPayment::OnChain { address, amount } => {
+        SendPayment::OnChain {
+            address,
+            amount,
+            confirmation_target,
+        } => {
             let address = Address::from_str(&address)?;
-            NODE.get().inner.send_to_address(&address, amount)?;
+            NODE.get()
+                .inner
+                .send_to_address(&address, amount, confirmation_target.into())?;
         }
     }
     Ok(())

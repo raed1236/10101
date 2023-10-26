@@ -1,5 +1,6 @@
 import 'package:get_10101/common/domain/model.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
+import 'package:get_10101/features/wallet/domain/confirmation_target.dart';
 import 'package:get_10101/features/wallet/domain/destination.dart';
 import 'package:get_10101/features/wallet/domain/share_payment_request.dart';
 import 'package:get_10101/features/wallet/domain/wallet_type.dart';
@@ -65,7 +66,8 @@ class WalletService {
     }
   }
 
-  Future<void> sendPayment(Destination destination, Amount? amount) async {
+  Future<void> sendPayment(
+      Destination destination, Amount? amount, ConfirmationTarget? confirmationTarget) async {
     logger.i("Sending payment of $amount");
 
     rust.SendPayment payment;
@@ -73,7 +75,10 @@ class WalletService {
       case WalletType.lightning:
         payment = rust.SendPayment_Lightning(invoice: destination.raw, amount: amount?.sats);
       case WalletType.onChain:
-        payment = rust.SendPayment_OnChain(address: destination.raw, amount: amount!.sats);
+        payment = rust.SendPayment_OnChain(
+            address: destination.raw,
+            amount: amount!.sats,
+            confirmationTarget: confirmationTarget!.toAPI());
       default:
         throw Exception("unsupported wallet type: ${destination.getWalletType().name}");
     }

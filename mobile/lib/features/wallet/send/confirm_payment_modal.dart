@@ -3,6 +3,7 @@ import 'package:get_10101/common/color.dart';
 import 'package:get_10101/common/domain/model.dart';
 import 'package:get_10101/common/snack_bar.dart';
 import 'package:get_10101/features/wallet/application/util.dart';
+import 'package:get_10101/features/wallet/domain/confirmation_target.dart';
 import 'package:get_10101/features/wallet/domain/destination.dart';
 import 'package:get_10101/features/wallet/domain/wallet_type.dart';
 import 'package:get_10101/features/wallet/send/payment_sent_change_notifier.dart';
@@ -13,7 +14,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:slide_to_confirm/slide_to_confirm.dart';
 
-void showConfirmPaymentModal(BuildContext context, Destination destination, Amount? amount) {
+void showConfirmPaymentModal(BuildContext context, Destination destination, Amount? amount,
+    ConfirmationTarget? confirmationTarget) {
   showModalBottomSheet<void>(
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -32,15 +34,18 @@ void showConfirmPaymentModal(BuildContext context, Destination destination, Amou
                     body: ConfirmPayment(
                   destination: destination,
                   amount: amount,
+                  confirmationTarget: confirmationTarget,
                 ))));
       });
 }
 
 class ConfirmPayment extends StatelessWidget {
   final Destination destination;
+  final ConfirmationTarget? confirmationTarget;
   final Amount? amount;
 
-  const ConfirmPayment({super.key, required this.destination, this.amount});
+  const ConfirmPayment(
+      {super.key, required this.destination, this.amount, this.confirmationTarget});
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +70,13 @@ class ConfirmPayment extends StatelessWidget {
             const Text("Amount:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 2),
             Text(amt.toString(), style: const TextStyle(fontSize: 16)),
+            if (confirmationTarget != null) ...[
+              const SizedBox(height: 20),
+              const Text("Priority:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 2),
+              Text(truncateWithEllipsis(32, confirmationTarget.toString()),
+                  style: const TextStyle(fontSize: 16)),
+            ],
             const SizedBox(height: 25),
             ConfirmationSlider(
                 text: "Swipe to confirm",
@@ -90,7 +102,7 @@ class ConfirmPayment extends StatelessWidget {
                         });
                   }
 
-                  walletService.sendPayment(destination, amt).then((value) {
+                  walletService.sendPayment(destination, amt, confirmationTarget).then((value) {
                     if (destination.getWalletType() == WalletType.onChain) {
                       GoRouter.of(context).pop();
                     }

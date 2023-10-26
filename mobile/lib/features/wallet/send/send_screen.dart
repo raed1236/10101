@@ -9,6 +9,7 @@ import 'package:get_10101/common/domain/model.dart';
 import 'package:get_10101/common/scrollable_safe_area.dart';
 import 'package:get_10101/features/wallet/application/util.dart';
 import 'package:get_10101/features/wallet/application/wallet_service.dart';
+import 'package:get_10101/features/wallet/domain/confirmation_target.dart';
 import 'package:get_10101/features/wallet/domain/destination.dart';
 import 'package:get_10101/features/wallet/domain/wallet_type.dart';
 import 'package:get_10101/features/wallet/send/confirm_payment_modal.dart';
@@ -39,6 +40,7 @@ class _SendScreenState extends State<SendScreen> {
 
   Destination? _destination;
   Amount? _amount;
+  ConfirmationTarget? _confirmationTarget;
 
   final TextEditingController _controller = TextEditingController();
 
@@ -68,6 +70,10 @@ class _SendScreenState extends State<SendScreen> {
 
           _invalidDestination = false;
           _valid = _formKey.currentState?.validate() ?? false;
+
+          if (destination.getWalletType() != WalletType.onChain) {
+            _confirmationTarget = null;
+          }
         } else {
           _invalidDestination = false;
         }
@@ -175,6 +181,26 @@ class _SendScreenState extends State<SendScreen> {
                       ],
                     ),
                   )),
+              if (_destination != null && _destination!.getWalletType() == WalletType.onChain) ...[
+                const SizedBox(height: 20),
+                const Text("Priority", style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                DropdownMenu(
+                    enableSearch: false,
+                    initialSelection: ConfirmationTarget.background,
+                    onSelected: (target) => setState(() {
+                          _confirmationTarget = target;
+                        }),
+                    dropdownMenuEntries: const [
+                      DropdownMenuEntry(
+                        value: ConfirmationTarget.background,
+                        label: "Background",
+                      ),
+                      DropdownMenuEntry(value: ConfirmationTarget.normal, label: "Normal"),
+                      DropdownMenuEntry(
+                          value: ConfirmationTarget.highPriority, label: "High priority")
+                    ]),
+              ],
               const SizedBox(height: 20),
               const Text("Amount in sats", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 2),
@@ -240,7 +266,8 @@ class _SendScreenState extends State<SendScreen> {
                     ElevatedButton(
                         onPressed: !_valid
                             ? null
-                            : () => showConfirmPaymentModal(context, _destination!, _amount),
+                            : () => showConfirmPaymentModal(
+                                context, _destination!, _amount, _confirmationTarget),
                         child: const Text("Next")),
                   ],
                 ),

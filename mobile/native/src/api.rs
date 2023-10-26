@@ -25,6 +25,7 @@ use bitcoin::Amount;
 use flutter_rust_bridge::frb;
 use flutter_rust_bridge::StreamSink;
 use flutter_rust_bridge::SyncReturn;
+use lightning::chain::chaininterface::ConfirmationTarget as LnConfirmationTarget;
 use ln_dlc_node::channel::UserChannelId;
 use orderbook_commons::order_matching_fee_taker;
 use rust_decimal::prelude::FromPrimitive;
@@ -400,7 +401,25 @@ pub enum SendPayment {
     OnChain {
         address: String,
         amount: u64,
+        confirmation_target: ConfirmationTarget,
     },
+}
+
+/// Analogous to [`lightning::chain::chaininterface::ConfirmationTarget`] but for the Flutter API
+pub enum ConfirmationTarget {
+    Background,
+    Normal,
+    HighPriority,
+}
+
+impl From<ConfirmationTarget> for LnConfirmationTarget {
+    fn from(value: ConfirmationTarget) -> Self {
+        match value {
+            ConfirmationTarget::Background => LnConfirmationTarget::Background,
+            ConfirmationTarget::Normal => LnConfirmationTarget::Normal,
+            ConfirmationTarget::HighPriority => LnConfirmationTarget::HighPriority,
+        }
+    }
 }
 
 pub fn send_payment(payment: SendPayment) -> Result<()> {

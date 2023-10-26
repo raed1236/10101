@@ -189,8 +189,9 @@ where
         &self,
         address: &bitcoin::Address,
         amount_sat_or_drain: Option<u64>,
+        confirmation_target: ConfirmationTarget,
     ) -> Result<Txid> {
-        let fee_rate = self.fee_rate_estimator.estimate(ConfirmationTarget::Normal);
+        let fee_rate = self.fee_rate_estimator.estimate(confirmation_target);
 
         let tx = {
             let locked_wallet = self.bdk_lock();

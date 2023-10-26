@@ -33,6 +33,7 @@ use dlc_sled_storage_provider::SledStorageProvider;
 use futures::future::RemoteHandle;
 use futures::FutureExt;
 pub use invoice::HTLCStatus;
+use lightning::chain::chaininterface::ConfirmationTarget;
 use lightning::chain::chainmonitor;
 use lightning::chain::keysinterface::EntropySource;
 use lightning::chain::keysinterface::KeysManager;
@@ -557,10 +558,15 @@ where
     }
 
     /// Send the given `amount_sats` sats to the given `address` on-chain.
-    pub fn send_to_address(&self, address: &bitcoin::Address, amount_sats: u64) -> Result<Txid> {
+    pub fn send_to_address(
+        &self,
+        address: &bitcoin::Address,
+        amount_sats: u64,
+        fee: ConfirmationTarget,
+    ) -> Result<Txid> {
         self.wallet
             .ldk_wallet()
-            .send_to_address(address, Some(amount_sats))
+            .send_to_address(address, Some(amount_sats), fee)
     }
 }
 
