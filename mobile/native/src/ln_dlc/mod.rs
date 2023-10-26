@@ -48,6 +48,7 @@ use coordinator_commons::OnboardingParam;
 use coordinator_commons::TradeParams;
 use itertools::chain;
 use itertools::Itertools;
+use lightning::chain::chaininterface::ConfirmationTarget;
 use lightning::ln::channelmanager::ChannelDetails;
 use lightning::util::events::Event;
 use lightning_invoice::Invoice;
@@ -838,8 +839,12 @@ pub fn get_usable_channel_details() -> Result<Vec<ChannelDetails>> {
 }
 
 pub fn get_fee_rate() -> Result<FeeRate> {
+    get_fee_rate_for_target(CONFIRMATION_TARGET)
+}
+
+pub fn get_fee_rate_for_target(target: ConfirmationTarget) -> Result<FeeRate> {
     let node = NODE.try_get().context("failed to get ln dlc node")?;
-    Ok(node.inner.wallet().get_fee_rate(CONFIRMATION_TARGET))
+    Ok(node.inner.wallet().get_fee_rate(target))
 }
 
 /// Returns channel value or zero if there is no channel yet.

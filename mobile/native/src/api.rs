@@ -422,6 +422,10 @@ impl From<ConfirmationTarget> for LnConfirmationTarget {
     }
 }
 
+pub fn fee_rate(confirmation_target: ConfirmationTarget) -> Result<f32> {
+    ln_dlc::get_fee_rate_for_target(confirmation_target.into()).map(|rate| rate.as_sat_per_vb())
+}
+
 pub fn send_payment(payment: SendPayment) -> Result<()> {
     ln_dlc::send_payment(payment)
 }

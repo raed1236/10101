@@ -66,6 +66,13 @@ class WalletService {
     }
   }
 
+  Future<Map<ConfirmationTarget, double>> getFees() async {
+    return {
+      for (var target in ConfirmationTarget.values)
+        target: await rust.api.feeRate(confirmationTarget: target.toAPI())
+    };
+  }
+
   Future<void> sendPayment(
       Destination destination, Amount? amount, ConfirmationTarget? confirmationTarget) async {
     logger.i("Sending payment of $amount");

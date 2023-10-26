@@ -41,6 +41,7 @@ class _SendScreenState extends State<SendScreen> {
   Destination? _destination;
   Amount? _amount;
   ConfirmationTarget? _confirmationTarget;
+  late final Map<ConfirmationTarget, double> _feeRates;
 
   final TextEditingController _controller = TextEditingController();
 
@@ -60,6 +61,8 @@ class _SendScreenState extends State<SendScreen> {
 
   Future<void> init(ChannelInfoService channelInfoService, WalletService walletService) async {
     channelInfo = await channelInfoService.getChannelInfo();
+    _feeRates = await walletService.getFees();
+
     if (widget.encodedDestination != null) {
       final destination = await walletService.decodeDestination(widget.encodedDestination!);
       setState(() {
@@ -79,6 +82,10 @@ class _SendScreenState extends State<SendScreen> {
         }
       });
     }
+  }
+
+  DropdownMenuEntry<ConfirmationTarget> _entryForConfirmationTarget(ConfirmationTarget target) {
+    return DropdownMenuEntry(value: target, label: "$target (${_feeRates[target]} sats/vbyte)");
   }
 
   @override
@@ -191,15 +198,9 @@ class _SendScreenState extends State<SendScreen> {
                     onSelected: (target) => setState(() {
                           _confirmationTarget = target;
                         }),
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(
-                        value: ConfirmationTarget.background,
-                        label: "Background",
-                      ),
-                      DropdownMenuEntry(value: ConfirmationTarget.normal, label: "Normal"),
-                      DropdownMenuEntry(
-                          value: ConfirmationTarget.highPriority, label: "High priority")
-                    ]),
+                    dropdownMenuEntries: ConfirmationTarget.values
+                        .map(_entryForConfirmationTarget)
+                        .toList(growable: false)),
               ],
               const SizedBox(height: 20),
               const Text("Amount in sats", style: TextStyle(fontWeight: FontWeight.bold)),
