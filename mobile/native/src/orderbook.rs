@@ -13,6 +13,7 @@ use bdk::bitcoin::secp256k1::SecretKey;
 use bdk::bitcoin::secp256k1::SECP256K1;
 use bitcoin::hashes::hex::ToHex;
 use futures::TryStreamExt;
+use lightning::ln::ChannelId;
 use orderbook_commons::best_current_price;
 use orderbook_commons::Message;
 use orderbook_commons::Order;
@@ -266,7 +267,7 @@ async fn handle_orderbook_mesage(
             ));
 
             if let Err(err) = ln_dlc::collaborative_revert_channel(
-                channel_id,
+                ChannelId(channel_id),
                 coordinator_address,
                 coordinator_amount,
                 trader_amount,

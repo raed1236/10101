@@ -16,7 +16,7 @@ use diesel::PgConnection;
 use dlc_manager::contract::contract_input::ContractInput;
 use dlc_manager::contract::contract_input::ContractInputInfo;
 use dlc_manager::contract::contract_input::OracleInput;
-use dlc_manager::ChannelId;
+use lightning::ln::ChannelId;
 use orderbook_commons::order_matching_fee_taker;
 use rust_decimal::prelude::Signed;
 use rust_decimal::prelude::ToPrimitive;

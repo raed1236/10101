@@ -7,7 +7,7 @@ use crate::trade::order::Order;
 use crate::trade::order::OrderReason;
 use crate::trade::position::Position;
 use coordinator_commons::TradeParams;
-use ln_dlc_node::node::rust_dlc_manager::ChannelId;
+use lightning::ln::ChannelId;
 use orderbook_commons::Prices;
 use std::fmt;
 use std::hash::Hash;

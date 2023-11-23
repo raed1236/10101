@@ -9,6 +9,7 @@ use bitcoin::Amount;
 use bitcoin::Txid;
 use coordinator_commons::TradeParams;
 use dlc_manager::ContractId;
+use lightning::ln::ChannelId;
 use orderbook_commons::order_matching_fee_taker;
 use rust_decimal::prelude::Signed;
 use rust_decimal::prelude::ToPrimitive;
@@ -765,7 +766,7 @@ pub mod tests {
 
 #[derive(Clone, Debug)]
 pub struct CollaborativeRevert {
-    pub channel_id: [u8; 32],
+    pub channel_id: ChannelId,
     pub trader_pubkey: PublicKey,
     pub price: f32,
     pub coordinator_address: Address,

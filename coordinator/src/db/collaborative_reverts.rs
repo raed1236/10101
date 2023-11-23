@@ -17,7 +17,7 @@ use diesel::OptionalExtension;
 use diesel::PgConnection;
 use diesel::Queryable;
 use diesel::RunQueryDsl;
-use dlc_manager::ChannelId;
+use lightning::ln::ChannelId;
 use std::str::FromStr;
 use time::OffsetDateTime;
 
@@ -64,6 +64,20 @@ pub(crate) fn by_trader_pubkey(
     }
 }
 
+pub(crate) fn get_by_channel_id(
+    conn: &mut PgConnection,
+    channel_id: &ChannelId,
+) -> Result<Option<position::models::CollaborativeRevert>> {
+    let channel_id = channel_id.0.to_hex();
+
+    collaborative_reverts::table
+        .filter(collaborative_reverts::channel_id.eq(channel_id))
+        .first(conn)
+        .optional()?
+        .map(|rev: CollaborativeRevert| anyhow::Ok(rev.try_into()?))
+        .transpose()
+}
+
 pub(crate) fn insert(
     conn: &mut PgConnection,
     collaborative_reverts: position::models::CollaborativeRevert,
@@ -89,7 +103,7 @@ pub(crate) fn delete(conn: &mut PgConnection, channel_id: ChannelId) -> Result<(
 impl From<position::models::CollaborativeRevert> for NewCollaborativeRevert {
     fn from(value: position::models::CollaborativeRevert) -> Self {
         NewCollaborativeRevert {
-            channel_id: hex::encode(value.channel_id),
+            channel_id: value.channel_id.0.to_hex(),
             trader_pubkey: value.trader_pubkey.to_string(),
             price: value.price,
             coordinator_address: value.coordinator_address.to_string(),
