@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fix: Return lsp config data in authenticated response
+
 ## [1.6.5] - 2023-11-29
 
 - Add support for Android 9
