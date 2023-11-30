@@ -76,7 +76,7 @@ Future<void> runBackend(BuildContext context) async {
 
 Future<void> _startBackend({seedDir, fcmToken}) async {
   try {
-    await rust.api.runInFlutter(seedDir: seedDir, fcmToken: fcmToken);
+    await rust.api.run(seedDir: seedDir, fcmToken: fcmToken);
   } catch (e) {
     logger.e("Launching the app failed $e");
     await Future.delayed(const Duration(seconds: 5));

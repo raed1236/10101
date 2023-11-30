@@ -11,7 +11,6 @@ use crate::event;
 use crate::event::api::FlutterSubscriber;
 use crate::health;
 use crate::ln_dlc;
-use crate::ln_dlc::get_storage;
 use crate::ln_dlc::FUNDING_TX_WEIGHT_ESTIMATE;
 use crate::logger;
 use crate::orderbook;
@@ -24,7 +23,9 @@ use crate::trade::users;
 use anyhow::Context;
 use anyhow::Result;
 use bitcoin::Amount;
+use commons::create_sign_message;
 use commons::order_matching_fee_taker;
+use commons::OrderbookRequest;
 use flutter_rust_bridge::frb;
 use flutter_rust_bridge::StreamSink;
 use flutter_rust_bridge::SyncReturn;
@@ -35,11 +36,12 @@ use state::Storage;
 use std::backtrace::Backtrace;
 use std::path::PathBuf;
 use time::OffsetDateTime;
+use tokio::sync::broadcast;
 pub use trade::ContractSymbol;
 pub use trade::Direction;
 
 /// Allows the hot restart to work
-static IS_INITIALISED: Storage<bool> = Storage::new();
+static IS_INITIALISED: Storage<broadcast::Sender<OrderbookRequest>> = Storage::new();
 
 /// Initialise logging infrastructure for Rust
 pub fn init_logging(sink: StreamSink<logger::LogEntry>) {
@@ -246,16 +248,46 @@ pub fn subscribe(stream: StreamSink<event::api::Event>) {
     event::subscribe(FlutterSubscriber::new(stream))
 }
 
-/// Wrapper for Flutter purposes - can throw an exception.
-pub fn run_in_flutter(seed_dir: String, fcm_token: String) -> Result<()> {
-    let result = if !IS_INITIALISED.try_get().unwrap_or(&false) {
-        run(seed_dir, fcm_token, IncludeBacktraceOnPanic::Yes)
-            .context("Failed to start the backend")
-    } else {
-        Ok(())
-    };
-    IS_INITIALISED.set(true);
-    result
+pub fn run(seed_dir: String, fcm_token: String) -> Result<()> {
+    match IS_INITIALISED.try_get() {
+        None => {
+            let (tx_websocket, _rx) = broadcast::channel(10);
+            tracing::info!("Staring backend");
+            run_internal(
+                seed_dir,
+                fcm_token,
+                tx_websocket.clone(),
+                IncludeBacktraceOnPanic::Yes,
+            )
+            .context("Failed to start the backend")?;
+
+            IS_INITIALISED.set(tx_websocket);
+
+            Ok(())
+        }
+        Some(tx_websocket) => {
+            // In case of a hot-restart we do not start the node again as it is already running.
+            // However, we need to re-send the authentication message to get the initial data from
+            // the coordinator and trigger a new user login event.
+            tracing::info!("Re-sending authentication message");
+            let signature = ln_dlc::get_node_key()
+                .sign_ecdsa(create_sign_message(commons::AUTH_SIGN_MESSAGE.to_vec()));
+            let signature = commons::Signature {
+                pubkey: ln_dlc::get_node_pubkey(),
+                signature,
+            };
+
+            let runtime = crate::state::get_or_create_tokio_runtime()?;
+            runtime.block_on(async {
+                tx_websocket.send(OrderbookRequest::Authenticate {
+                    fcm_token: Some(fcm_token),
+                    signature,
+                })
+            })?;
+
+            Ok(())
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -272,12 +304,13 @@ pub fn set_config(config: Config, app_dir: String, seed_dir: String) -> Result<(
 #[tokio::main(flavor = "current_thread")]
 pub async fn full_backup() -> Result<()> {
     db::init_db(&config::get_data_dir(), get_network())?;
-    get_storage().full_backup().await
+    ln_dlc::get_storage().full_backup().await
 }
 
-pub fn run(
+fn run_internal(
     seed_dir: String,
     fcm_token: String,
+    tx_websocket: broadcast::Sender<OrderbookRequest>,
     backtrace_on_panic: IncludeBacktraceOnPanic,
 ) -> Result<()> {
     if backtrace_on_panic == IncludeBacktraceOnPanic::Yes {
@@ -301,7 +334,13 @@ pub fn run(
 
     let (_health, tx) = health::Health::new(runtime);
 
-    orderbook::subscribe(ln_dlc::get_node_key(), runtime, tx.orderbook, fcm_token)
+    orderbook::subscribe(
+        ln_dlc::get_node_key(),
+        runtime,
+        tx.orderbook,
+        fcm_token,
+        tx_websocket,
+    )
 }
 
 pub fn get_unused_address() -> SyncReturn<String> {
